@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { LayoutGrid, List } from 'lucide-react';
 
-export default function CharacterList({ tableName, gameName, gameColor }) {
+export default function CharacterList({ tableName, gameName, gameColor, storagePath, hasElement = false, gameRoute = '/' }) {
     const [characters, setCharacters] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -12,6 +13,26 @@ export default function CharacterList({ tableName, gameName, gameColor }) {
     const [sortOrder, setSortOrder] = useState('default'); // 'default', 'name-asc', etc.
 
     const idColumnName = `${tableName}-id`;
+
+    // 元素マップ（GI用）
+    const elementMap = {
+        1: { name: '炎', color: 'from-red-500 to-orange-500', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Pyro.webp' },
+        2: { name: '水', color: 'from-blue-500 to-cyan-500', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Hydro.webp' },
+        3: { name: '風', color: 'from-green-500 to-teal-500', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Anemo.webp' },
+        4: { name: '雷', color: 'from-purple-500 to-violet-500', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Electro.webp' },
+        5: { name: '草', color: 'from-yellow-500 to-lime-500', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Dendro.webp' },
+        6: { name: '氷', color: 'from-cyan-300 to-blue-300', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Cryo.webp' },
+        7: { name: '岩', color: 'from-yellow-600 to-orange-600', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Geo.webp' },
+    };
+
+    // 武器タイプマップ（GI用）
+    const weaponTypeMap = {
+        1: { name: '片手剣', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/weaponicon-gi/Sword.webp' },
+        2: { name: '両手剣', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/weaponicon-gi/Claymore.webp' },
+        3: { name: '長柄武器', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/weaponicon-gi/Polearm.webp' },
+        4: { name: '弓', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/weaponicon-gi/Bow.webp' },
+        5: { name: '法器', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/weaponicon-gi/Catalyst.webp' },
+    };
 
     useEffect(() => {
         async function loadCharacters() {
@@ -143,27 +164,63 @@ export default function CharacterList({ tableName, gameName, gameColor }) {
             {/* グリッド表示 */}
             {viewMode === 'grid' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {sortedCharacters.map((character) => (
-                        <div
-                            key={character[`${tableName}-id`]}
-                            className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700 overflow-hidden"
-                        >
-                            <div className={`h-32 bg-gradient-to-br ${gameColor} opacity-80`}></div>
-                            <div className="p-6">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                                    {character['name-jp']}
-                                </h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                    {character['name-en']}
-                                </p>
-                                <div className="flex gap-2">
-                                    <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold">
-                                        ID: {character[`${tableName}-id`]}
-                                    </span>
+                    {sortedCharacters.map((character) => {
+                        const travelerId = [1, 2, 3, 4, 38, 39, 57, 58, 76, 77, 101, 102];
+                        const isTraveler = tableName === 'GI_chara' && travelerId.includes(character[`${tableName}-id`]);
+                        const imageUrl = isTraveler
+                            ? 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/icons-gi/Traveler_icon.webp'
+                            : `https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/${storagePath}/${character['name-en']}_icon.webp`;
+                        const element = hasElement ? elementMap[character.element] : null;
+                        const weaponType = hasElement ? weaponTypeMap[character.weapontype] : null;
+                        const characterLink = `${gameRoute}/character/${encodeURIComponent(character['name-jp'])}`;
+                        return (
+                            <Link
+                                key={character[`${tableName}-id`]}
+                                href={characterLink}
+                            >
+                                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 overflow-hidden group cursor-pointer hover:scale-105 hover:border-gray-400 dark:hover:border-gray-500">
+                                    {/* 画像エリア */}
+                                    <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 overflow-hidden group-hover:scale-110 transition-transform">
+                                        <img
+                                            src={imageUrl}
+                                            alt={character['name-jp']}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="p-6">
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                            {character['name-jp']}
+                                        </h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                            {character['name-en']}
+                                        </p>
+                                        <div className="flex gap-2 flex-wrap items-center">
+                                            <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold">
+                                                ID: {character[`${tableName}-id`]}
+                                            </span>
+                                            {element && (
+                                                <img 
+                                                    src={element.url}
+                                                    alt={element.name}
+                                                    className="w-6 h-6 object-contain"
+                                                />
+                                            )}
+                                            {weaponType && (
+                                                <img 
+                                                    src={weaponType.url}
+                                                    alt={weaponType.name}
+                                                    className="w-6 h-6 object-contain"
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
+                            </Link>
+                        );
+                    })}
                 </div>
             )}
 
@@ -177,29 +234,69 @@ export default function CharacterList({ tableName, gameName, gameColor }) {
                                     <th className="px-6 py-4 text-left font-semibold">ID</th>
                                     <th className="px-6 py-4 text-left font-semibold">日本語名</th>
                                     <th className="px-6 py-4 text-left font-semibold">英語名</th>
+                                    {hasElement && <th className="px-6 py-4 text-left font-semibold">元素</th>}
+                                    {hasElement && <th className="px-6 py-4 text-left font-semibold">武器</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {sortedCharacters.map((character, index) => (
-                                    <tr
-                                        key={character[`${tableName}-id`]}
-                                        className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                                            index % 2 === 0
-                                                ? 'bg-white dark:bg-gray-800'
-                                                : 'bg-gray-50 dark:bg-gray-700/30'
-                                        }`}
-                                    >
-                                        <td className="px-6 py-4 text-gray-900 dark:text-white font-semibold">
-                                            {character[`${tableName}-id`]}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
-                                            {character['name-jp']}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                                            {character['name-en']}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {sortedCharacters.map((character, index) => {
+                                    const element = hasElement ? elementMap[character.element] : null;
+                                    const weaponType = hasElement ? weaponTypeMap[character.weapontype] : null;
+                                    const characterLink = `${gameRoute}/character/${encodeURIComponent(character['name-jp'])}`;
+                                    return (
+                                        <tr
+                                            key={character[`${tableName}-id`]}
+                                            className={`hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer ${
+                                                index % 2 === 0
+                                                    ? 'bg-white dark:bg-gray-800'
+                                                    : 'bg-gray-50 dark:bg-gray-700/30'
+                                            }`}
+                                            onClick={() => window.location.href = characterLink}
+                                        >
+                                            <td className="px-6 py-4 text-gray-900 dark:text-white font-semibold">
+                                                {character[`${tableName}-id`]}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
+                                                {character['name-jp']}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                                {character['name-en']}
+                                            </td>
+                                            {hasElement && (
+                                                <td className="px-6 py-4">
+                                                    {element && (
+                                                        <div className="flex items-center gap-2">
+                                                            <img 
+                                                                src={element.url}
+                                                                alt={element.name}
+                                                                className="w-6 h-6 object-contain"
+                                                            />
+                                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                {element.name}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            )}
+                                            {hasElement && (
+                                                <td className="px-6 py-4">
+                                                    {weaponType && (
+                                                        <div className="flex items-center gap-2">
+                                                            <img 
+                                                                src={weaponType.url}
+                                                                alt={weaponType.name}
+                                                                className="w-6 h-6 object-contain"
+                                                            />
+                                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                {weaponType.name}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

@@ -42,6 +42,8 @@ export default function HSRPage() {
                     tableName="HSR_chara" 
                     gameName="Honkai: Star Rail"
                     gameColor="from-yellow-500 to-orange-500"
+                    storagePath="hsr-icons"
+                    gameRoute="/hsr"
                 />
             </main>
 

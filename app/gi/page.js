@@ -42,6 +42,9 @@ export default function GIPage() {
                     tableName="GI_chara" 
                     gameName="Genshin Impact"
                     gameColor="from-blue-500 to-cyan-500"
+                    storagePath="icons-gi"
+                    hasElement={true}
+                    gameRoute="/gi"
                 />
             </main>
 

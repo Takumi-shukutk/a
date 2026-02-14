@@ -42,6 +42,8 @@ export default function ZZZPage() {
                     tableName="ZZZ_chara" 
                     gameName="Zenless Zone Zero"
                     gameColor="from-purple-500 to-pink-500"
+                    storagePath="zzz-icons"
+                    gameRoute="/zzz"
                 />
             </main>
 

@@ -42,6 +42,8 @@ export default function WUWAPage() {
                     tableName="WUWA_chara" 
                     gameName="Wuthering Waves"
                     gameColor="from-green-500 to-emerald-500"
+                    storagePath="wuwa-icons"
+                    gameRoute="/wuwa"
                 />
             </main>
 
