@@ -10,8 +10,10 @@ export default function GICharacterDetailPage() {
     const params = useParams();
     const nameJp = decodeURIComponent(params.nameJp);
     const [character, setCharacter] = useState(null);
+    const [characterStats, setCharacterStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedLevel, setSelectedLevel] = useState({ level: 1, ascended: false });
 
     const elementMap = {
         1: { name: '炎', color: 'from-red-500 to-orange-500', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Pyro.webp' },
@@ -42,9 +44,28 @@ export default function GICharacterDetailPage() {
 
                 if (sbError) throw sbError;
                 setCharacter(data);
+
+                // Fetch character stats by GI_chara-id
+                if (data && data['GI_chara-id']) {
+                    const { data: statsData, error: statsError } = await supabase
+                        .from('GI_chara-status')
+                        .select('*')
+                        .eq('GI_chara-id', data['GI_chara-id'])
+                        .order('level', { ascending: true });
+
+                    if (statsError) throw statsError;
+                    setCharacterStats(statsData || []);
+                    
+                    // Set default level to the minimum available level
+                    if (statsData && statsData.length > 0) {
+                        const firstStat = statsData[0];
+                        setSelectedLevel({ level: firstStat.level, ascended: firstStat.ascended === true });
+                    }
+                }
             } catch (err) {
                 console.error('Error fetching character:', err);
-                setError(err.message);
+                console.error('Full error:', JSON.stringify(err, null, 2));
+                setError(err.message || JSON.stringify(err));
             } finally {
                 setLoading(false);
             }
@@ -181,6 +202,110 @@ export default function GICharacterDetailPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Character Stats Section */}
+                {characterStats.length > 0 && (
+                    <div className="mt-12 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden p-8">
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+                            キャラクタースタッツ
+                        </h2>
+
+                        {/* Level Selector */}
+                        <div className="mb-8">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                                レベル・突破状況
+                            </label>
+                            <div className="flex flex-wrap gap-3">
+                                {characterStats.map((stat, index) => {
+                                    const isSelected = selectedLevel.level === stat.level && selectedLevel.ascended === (stat.ascended === true);
+                                    const ascensionLabel = stat.ascended ? '突破済み' : '未突破';
+                                    
+                                    return (
+                                        <button
+                                            key={index}
+                                            onClick={() => setSelectedLevel({ level: stat.level, ascended: stat.ascended === true })}
+                                            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                                                isSelected
+                                                    ? 'bg-blue-600 text-white shadow-lg'
+                                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                            }`}
+                                        >
+                                            Lv.{stat.level} <span className="text-xs ml-1">({ascensionLabel})</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Stats Table */}
+                        {(() => {
+                            // Find the stat data for the selected level and ascension
+                            const statData = characterStats.find(
+                                s => s.level === selectedLevel.level && (s.ascended === true) === selectedLevel.ascended
+                            );
+                            if (!statData) return null;
+
+                            // Organize stats with true values on top, false on bottom
+                            const allStats = [
+                                { label: '基礎HP', value: statData['base-hp'], base: true, unit: '' },
+                                { label: '基礎攻撃力', value: statData['base-atk'], base: true, unit: '' },
+                                { label: '基礎防御力', value: statData['base-def'], base: true, unit: '' },
+                                { label: 'HP%', value: statData['per-hp'], base: false, unit: '%' },
+                                { label: '攻撃力%', value: statData['per-atk'], base: false, unit: '%' },
+                                { label: '防御力%', value: statData['per-def'], base: false, unit: '%' },
+                                { label: '会心率', value: statData['cr'], base: false, unit: '%' },
+                                { label: '会心ダメージ', value: statData['cd'], base: false, unit: '%' },
+                                { label: '元素熟知', value: statData['em'], base: false, unit: '' },
+                            ];
+
+                            // Filter out null values and sort: true (base) first, then false (non-base)
+                            const sortedStats = [
+                                ...allStats.filter(s => s.base && s.value !== null),
+                                ...allStats.filter(s => !s.base && s.value !== null),
+                            ];
+
+                            return (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b-2 border-gray-200 dark:border-gray-700">
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                                    ステータス
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                                    値
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {sortedStats.map((stat, index) => {
+                                                const baseCount = sortedStats.filter(s => s.base).length;
+                                                const isBaseRow = index < baseCount;
+                                                return (
+                                                <tr
+                                                    key={index}
+                                                    className={`border-b border-gray-100 dark:border-gray-700 ${
+                                                        isBaseRow
+                                                            ? 'bg-blue-50 dark:bg-gray-700/50'
+                                                            : 'bg-gray-50 dark:bg-gray-800/50'
+                                                    } hover:bg-gray-100 dark:hover:bg-gray-700 transition`}
+                                                >
+                                                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                                        {stat.label}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                        {stat.value}{stat.unit}
+                                                    </td>
+                                                </tr>
+                                            );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            );
+                        })()}
+                    </div>
+                )}
             </main>
 
             {/* フッター */}
