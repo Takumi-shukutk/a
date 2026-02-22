@@ -44,6 +44,7 @@ export default function WUWAPage() {
                     gameColor="from-green-500 to-emerald-500"
                     storagePath="wuwa-icons"
                     gameRoute="/wuwa"
+                    hasElement={true}
                 />
             </main>
 

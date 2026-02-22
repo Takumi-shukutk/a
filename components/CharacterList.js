@@ -11,6 +11,8 @@ export default function CharacterList({ tableName, gameName, gameColor, storageP
     const [error, setError] = useState(null);
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
     const [sortOrder, setSortOrder] = useState('default'); // 'default', 'name-asc', etc.
+    const [selectedElements, setSelectedElements] = useState([]); // 複数選択対応
+    const [selectedWeapons, setSelectedWeapons] = useState([]); // 複数選択対応
 
     const idColumnName = `${tableName}-id`;
 
@@ -76,6 +78,13 @@ export default function CharacterList({ tableName, gameName, gameColor, storageP
         return 0;
     });
 
+    // フィルタリング処理
+    const filteredCharacters = sortedCharacters.filter((character) => {
+        const elementMatch = selectedElements.length === 0 || selectedElements.includes(character.element);
+        const weaponMatch = selectedWeapons.length === 0 || selectedWeapons.includes(character.weapontype);
+        return elementMatch && weaponMatch;
+    });
+
     if (loading) {
         return (
             <div className="flex justify-center items-center py-12">
@@ -100,62 +109,124 @@ export default function CharacterList({ tableName, gameName, gameColor, storageP
         <div className="space-y-6">
             {/* コントロールバー */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                    <div className="flex-1">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            登録キャラクター: <span className="font-bold text-lg">{characters.length}</span> 体
-                        </p>
-                    </div>
+                <div className="flex flex-row items-start justify-between gap-3">
+                    {/* 絞り込み - 元素と武器 */}
+                    {hasElement && (
+                        <div className="flex flex-col gap-2">
+                            {/* 元素ボタン群 */}
+                            <div className="flex flex-wrap gap-2">
+                                {Object.entries(elementMap).map(([id, element]) => (
+                                    <button
+                                        key={id}
+                                        onClick={() => {
+                                            const numId = parseInt(id);
+                                            setSelectedElements(
+                                                selectedElements.includes(numId)
+                                                    ? selectedElements.filter(e => e !== numId)
+                                                    : [...selectedElements, numId]
+                                            );
+                                        }}
+                                        title={element.name}
+                                        className={`w-10 h-10 rounded-lg border-2 transition-all flex items-center justify-center hover:scale-110 ${
+                                            selectedElements.includes(parseInt(id))
+                                                ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/40 ring-2 ring-blue-300 dark:ring-blue-700'
+                                                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                                        }`}
+                                    >
+                                        <img 
+                                            src={element.url}
+                                            alt={element.name}
+                                            className="w-6 h-6 object-contain"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 flex-1 sm:justify-end">
-                        {/* ソート */}
-                        <div>
-                            <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                並び替え
-                            </label>
-                            <select
-                                id="sortOrder"
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                            >
-                                <option value="default">デフォルト (ID順)</option>
-                                <option value="name-asc">日本語名 (昇順)</option>
-                                <option value="name-desc">日本語名 (降順)</option>
-                                <option value="name-en-asc">英語名 (昇順)</option>
-                                <option value="name-en-desc">英語名 (降順)</option>
-                            </select>
+                            {/* 武器ボタン群 */}
+                            <div className="flex flex-wrap gap-2">
+                                {Object.entries(weaponTypeMap).map(([id, weapon]) => (
+                                    <button
+                                        key={id}
+                                        onClick={() => {
+                                            const numId = parseInt(id);
+                                            setSelectedWeapons(
+                                                selectedWeapons.includes(numId)
+                                                    ? selectedWeapons.filter(w => w !== numId)
+                                                    : [...selectedWeapons, numId]
+                                            );
+                                        }}
+                                        title={weapon.name}
+                                        className={`w-10 h-10 rounded-lg border-2 transition-all flex items-center justify-center hover:scale-110 ${
+                                            selectedWeapons.includes(parseInt(id))
+                                                ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/40 ring-2 ring-blue-300 dark:ring-blue-700'
+                                                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                                        }`}
+                                    >
+                                        <img 
+                                            src={weapon.url}
+                                            alt={weapon.name}
+                                            className="w-6 h-6 object-contain"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* 絞り込みリセットボタン */}
+                            {(selectedElements.length > 0 || selectedWeapons.length > 0) && (
+                                <button
+                                    onClick={() => {
+                                        setSelectedElements([]);
+                                        setSelectedWeapons([]);
+                                    }}
+                                    className="px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium text-xs w-fit"
+                                >
+                                    リセット
+                                </button>
+                            )}
                         </div>
+                    )}
+
+                    {/* 表示設定 */}
+                    <div className="flex items-center gap-3">
+                        {/* ソート */}
+                        <select
+                            id="sortOrder"
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            title="並び替え"
+                            className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
+                        >
+                            <option value="default">デフォルト (ID順)</option>
+                            <option value="name-asc">日本語名 (昇順)</option>
+                            <option value="name-desc">日本語名 (降順)</option>
+                            <option value="name-en-asc">英語名 (昇順)</option>
+                            <option value="name-en-desc">英語名 (降順)</option>
+                        </select>
 
                         {/* ビューモード切り替え */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                表示方式
-                            </label>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setViewMode('grid')}
-                                    className={`p-2 rounded-lg border-2 transition-all ${
-                                        viewMode === 'grid'
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                                            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                                    }`}
-                                    title="グリッド表示"
-                                >
-                                    <LayoutGrid className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('list')}
-                                    className={`p-2 rounded-lg border-2 transition-all ${
-                                        viewMode === 'list'
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                                            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                                    }`}
-                                    title="リスト表示"
-                                >
-                                    <List className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                                </button>
-                            </div>
+                        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded transition-all ${
+                                    viewMode === 'grid'
+                                        ? 'bg-white dark:bg-gray-600 text-blue-500 shadow-sm'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                }`}
+                                title="グリッド表示"
+                            >
+                                <LayoutGrid className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-2 rounded transition-all ${
+                                    viewMode === 'list'
+                                        ? 'bg-white dark:bg-gray-600 text-blue-500 shadow-sm'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                }`}
+                                title="リスト表示"
+                            >
+                                <List className="w-5 h-5" />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -163,8 +234,9 @@ export default function CharacterList({ tableName, gameName, gameColor, storageP
 
             {/* グリッド表示 */}
             {viewMode === 'grid' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {sortedCharacters.map((character) => {
+                <div className="relative">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredCharacters.map((character) => {
                         const travelerId = [1, 2, 3, 4, 38, 39, 57, 58, 76, 77, 101, 102];
                         const isTraveler = tableName === 'GI_chara' && travelerId.includes(character[`${tableName}-id`]);
                         const imageUrl = isTraveler
@@ -221,6 +293,14 @@ export default function CharacterList({ tableName, gameName, gameColor, storageP
                             </Link>
                         );
                     })}
+                    </div>
+
+                    {/* 右下に登録キャラ数 */}
+                    <div className="flex justify-end mt-4">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {filteredCharacters.length} 体
+                        </p>
+                    </div>
                 </div>
             )}
 
@@ -239,7 +319,7 @@ export default function CharacterList({ tableName, gameName, gameColor, storageP
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {sortedCharacters.map((character, index) => {
+                                {filteredCharacters.map((character, index) => {
                                     const element = hasElement ? elementMap[character.element] : null;
                                     const weaponType = hasElement ? weaponTypeMap[character.weapontype] : null;
                                     const characterLink = `${gameRoute}/character/${encodeURIComponent(character['name-jp'])}`;
@@ -300,14 +380,23 @@ export default function CharacterList({ tableName, gameName, gameColor, storageP
                             </tbody>
                         </table>
                     </div>
+                    
+                    {/* 右下に登録キャラ数 */}
+                    <div className="flex justify-end mt-4 pr-6 pb-4">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {filteredCharacters.length} 体
+                        </p>
+                    </div>
                 </div>
             )}
 
             {/* キャラクターなし */}
-            {sortedCharacters.length === 0 && (
+            {filteredCharacters.length === 0 && (
                 <div className="text-center py-12">
                     <p className="text-gray-600 dark:text-gray-400 text-lg">
-                        まだキャラクターが登録されていません
+                        {selectedElements.length > 0 || selectedWeapons.length > 0
+                            ? '条件に合致するキャラクターが見つかりません'
+                            : 'まだキャラクターが登録されていません'}
                     </p>
                 </div>
             )}

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 
 export default function GICharacterDetailPage() {
     const params = useParams();
@@ -14,6 +14,7 @@ export default function GICharacterDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedLevel, setSelectedLevel] = useState({ level: 1, ascended: false });
+    const [expandedLevel, setExpandedLevel] = useState(false);
 
     const elementMap = {
         1: { name: '炎', color: 'from-red-500 to-orange-500', url: 'https://czmftjvxtosunimxhdzu.supabase.co/storage/v1/object/public/element-gi/Pyro.webp' },
@@ -207,7 +208,7 @@ export default function GICharacterDetailPage() {
                 {characterStats.length > 0 && (
                     <div className="mt-12 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden p-8">
                         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
-                            キャラクタースタッツ
+                            キャラクターステータス
                         </h2>
 
                         {/* Level Selector */}
@@ -215,25 +216,57 @@ export default function GICharacterDetailPage() {
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                                 レベル・突破状況
                             </label>
-                            <div className="flex flex-wrap gap-3">
-                                {characterStats.map((stat, index) => {
-                                    const isSelected = selectedLevel.level === stat.level && selectedLevel.ascended === (stat.ascended === true);
-                                    const ascensionLabel = stat.ascended ? '突破済み' : '未突破';
+                            <div className="flex flex-col items-center gap-4">
+                                {/* Current Level Display */}
+                                {(() => {
+                                    const currentStat = characterStats.find(
+                                        s => s.level === selectedLevel.level && (s.ascended === true) === selectedLevel.ascended
+                                    );
+                                    if (!currentStat) return null;
+                                    const ascensionLabel = selectedLevel.ascended ? '突破済み' : '未突破';
                                     
                                     return (
-                                        <button
-                                            key={index}
-                                            onClick={() => setSelectedLevel({ level: stat.level, ascended: stat.ascended === true })}
-                                            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                                                isSelected
-                                                    ? 'bg-blue-600 text-white shadow-lg'
-                                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600'
-                                            }`}
-                                        >
-                                            Lv.{stat.level} <span className="text-xs ml-1">({ascensionLabel})</span>
-                                        </button>
+                                        <div className="w-full max-w-xs">
+                                            <button
+                                                onClick={() => setExpandedLevel(!expandedLevel)}
+                                                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-between shadow-md"
+                                            >
+                                                <span>Lv.{selectedLevel.level} ({ascensionLabel})</span>
+                                                <ChevronDown 
+                                                    className={`w-5 h-5 transition-transform ${expandedLevel ? 'rotate-180' : ''}`}
+                                                />
+                                            </button>
+                                        </div>
                                     );
-                                })}
+                                })()}
+
+                                {/* Expanded Level List */}
+                                {expandedLevel && (
+                                    <div className="w-full max-w-xs flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-700">
+                                        {characterStats.map((stat, index) => {
+                                            const isSelected = selectedLevel.level === stat.level && selectedLevel.ascended === (stat.ascended === true);
+                                            const ascensionLabel = stat.ascended ? '突破済み' : '未突破';
+                                            
+                                            return (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => {
+                                                        setSelectedLevel({ level: stat.level, ascended: stat.ascended === true });
+                                                        setExpandedLevel(false);
+                                                    }}
+                                                    className={`px-3 py-1 rounded-lg font-medium transition-all text-sm ${
+                                                        isSelected
+                                                            ? 'bg-blue-600 text-white shadow-md'
+                                                            : 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-500 border border-gray-200 dark:border-gray-500'
+                                                    }`}
+                                                >
+                                                    Lv.{stat.level}
+                                                    <span className="text-xs ml-1">({ascensionLabel.substring(0, 1)})</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
